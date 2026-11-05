@@ -1,4 +1,4 @@
-PROJECT_NAME     := blinky_pca10059_mbr
+PROJECT_NAME     := gpio-led_pca10059_mbr
 TARGETS          := nrf52840_xxaa
 OUTPUT_DIRECTORY := _build
 DFU_PACKAGE      := $(OUTPUT_DIRECTORY)/nrf52840_xxaa.dfu
@@ -29,7 +29,7 @@ SRC_FILES += \
     $(SDK_ROOT)/components/libraries/ringbuf/nrf_ringbuf.c \
     $(SDK_ROOT)/components/libraries/strerror/nrf_strerror.c \
     $(SDK_ROOT)/modules/nrfx/soc/nrfx_atomic.c \
-    $(PROJ_DIR)/src/blinky.c \
+    $(PROJ_DIR)/src/gpio-led.c \
     $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52840.c
 
 # Include folders common to all targets

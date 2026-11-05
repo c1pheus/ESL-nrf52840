@@ -50,37 +50,78 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "nrf_gpio.h"
 #include "nrf_delay.h"
-#include "boards.h"
-#include "blinky.h"
+#include "gpio-led.h"
 
 /**
  * @brief Function for application main entry.
  */
-void blink(uint32_t led, size_t count)
+size_t blink(uint32_t led, size_t count, size_t current_blink)
 {
-    for (size_t i = 0; i < count; i++)
+    while (current_blink < count)
     {
-        bsp_board_led_on(led);
+        if (nrf_gpio_pin_read(BUTTON_PIN) != 0)
+            return current_blink;
+
+        nrf_gpio_pin_clear(led);
         nrf_delay_ms(BLINK_DELAY_MS);
 
-        bsp_board_led_off(led);
+        if (nrf_gpio_pin_read(BUTTON_PIN) != 0)
+            return current_blink;
+
+        nrf_gpio_pin_set(led);
         nrf_delay_ms(BLINK_DELAY_MS);
+
+        current_blink++;
     }
 
     nrf_delay_ms(PAUSE_DELAY_MS);
+
+    return 0;
 }
 
 int main(void)
 {
-    bsp_board_init(BSP_INIT_LEDS);
+    nrf_gpio_cfg_output(LED_1);
+    nrf_gpio_cfg_output(LED_2);
+    nrf_gpio_cfg_output(LED_3);
+    nrf_gpio_cfg_output(LED_4);
+
+    nrf_gpio_pin_set(LED_1);
+    nrf_gpio_pin_set(LED_2);
+    nrf_gpio_pin_set(LED_3);
+    nrf_gpio_pin_set(LED_4);
+
+    nrf_gpio_cfg_input(BUTTON_PIN, NRF_GPIO_PIN_PULLUP);
+
+    size_t current_led = 0;
+    size_t current_blink = 0;
 
     while (true)
     {
-        blink(0, LED_1_BLINK_COUNT);
-        blink(1, LED_2_BLINK_COUNT);
-        blink(2, LED_3_BLINK_COUNT);
-        blink(3, LED_4_BLINK_COUNT);
+        while (nrf_gpio_pin_read(BUTTON_PIN) == 0)
+        {
+            if (current_led == 0)
+                current_blink = blink(LED_1, LED_1_BLINK_COUNT, current_blink);
+
+            if (current_led == 1)
+                current_blink = blink(LED_2, LED_2_BLINK_COUNT, current_blink);
+
+            if (current_led == 2)
+                current_blink = blink(LED_3, LED_3_BLINK_COUNT, current_blink);
+
+            if (current_led == 3)
+                current_blink = blink(LED_4, LED_4_BLINK_COUNT, current_blink);
+
+            if (current_blink == 0)
+            {
+                current_led++;
+
+                if (current_led == 4)
+                    current_led = 0;
+            }
+        }
     }
 }
 /**
