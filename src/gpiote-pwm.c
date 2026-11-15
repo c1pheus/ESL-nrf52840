@@ -15,9 +15,9 @@
 #define LED_LD2_BLUE_PIN  NRF_GPIO_PIN_MAP(0, 12)
 #define BUTTON_SW1_PIN NRF_GPIO_PIN_MAP(1, 6)
 
-#define PWM_PERIOD_US          1000U //freqency is 1 kHz
-#define FADE_STEP_PERCENT      5U //step of PWM value
-#define CONTROL_TICK_MS        10U
+#define PWM_PERIOD_US          1000 //freqency is 1 kHz
+#define FADE_STEP_PERCENT      5 //step of PWM value
+#define CONTROL_TICK_MS        10
 //using Nordic SDK app_pwm library
 APP_PWM_INSTANCE(PWM_A, 2);
 APP_PWM_INSTANCE(PWM_B, 3);
@@ -36,8 +36,8 @@ static app_pwm_config_t pwm_config_b =
 //TIMER1 is for button handler, TIMER2, TIMER3 are for PWM
 static const nrf_drv_timer_t CONTROL_TIMER = NRF_DRV_TIMER_INSTANCE(1);
 
-#define DEBOUNCE_TICKS       (50U  / CONTROL_TICK_MS)
-#define DOUBLE_CLICK_TICKS   (300U / CONTROL_TICK_MS)
+#define DEBOUNCE_TICKS       (50  / CONTROL_TICK_MS)
+#define DOUBLE_CLICK_TICKS   (300 / CONTROL_TICK_MS)
 
 //these parameters are used for GPIOTE and TIMER
 static volatile uint32_t g_control_ticks = 0;
@@ -50,10 +50,10 @@ static volatile bool g_fade_tick_pending = false;
 
 //#6596
 
-static const uint8_t DEVICE_ID_SEQUENCE[4] = {6U, 5U, 9U, 6U};
+static const uint8_t DEVICE_ID_SEQUENCE[4] = {6, 5, 9, 6};
 
 static uint8_t current_led = 0;
-static uint8_t pulses_remaining = 6U;
+static uint8_t pulses_remaining = 6;
 static uint8_t duty_percent = 0;
 static int8_t fade_direction = 1;
 static bool sequence_started = false;
@@ -90,20 +90,20 @@ static void led_duty_set(uint8_t led_index, uint8_t duty)
 {
     switch (led_index)
     {
-        case 0U:
-            pwm_set_channel(&PWM_A, 0U, duty);
+        case 0:
+            pwm_set_channel(&PWM_A, 0, duty);
             break;
 
-        case 1U:
-            pwm_set_channel(&PWM_A, 1U, duty);
+        case 1:
+            pwm_set_channel(&PWM_A, 1, duty);
             break;
 
-        case 2U:
-            pwm_set_channel(&PWM_B, 0U, duty);
+        case 2:
+            pwm_set_channel(&PWM_B, 0, duty);
             break;
 
-        case 3U:
-            pwm_set_channel(&PWM_B, 1U, duty);
+        case 3:
+            pwm_set_channel(&PWM_B, 1, duty);
             break;
 
         default:
@@ -114,13 +114,13 @@ static void led_duty_set(uint8_t led_index, uint8_t duty)
 
 static void sequence_reset(void)
 {
-    current_led = 0U;
+    current_led = 0;
     pulses_remaining = DEVICE_ID_SEQUENCE[0];
-    duty_percent = 0U;
+    duty_percent = 0;
     fade_direction = 1;
     sequence_started = true;
 
-    led_duty_set(current_led, 0U);
+    led_duty_set(current_led, 0);
 }
 
 static void sequence_step(void)
@@ -129,7 +129,7 @@ static void sequence_step(void)
     {
         if ((uint16_t)duty_percent + FADE_STEP_PERCENT >= 100U)
         {
-            duty_percent = 100U;
+            duty_percent = 100;
             fade_direction = -1;
         }
         else
@@ -141,17 +141,17 @@ static void sequence_step(void)
     {
         if (duty_percent <= FADE_STEP_PERCENT)
         {
-            duty_percent = 0U;
+            duty_percent = 0;
 
-            if (pulses_remaining > 1U)
+            if (pulses_remaining > 1)
             {
                 --pulses_remaining;
             }
             else
             {
                //clear channel
-                led_duty_set(current_led, 0U);
-                current_led = (uint8_t)((current_led + 1U) % 4U);
+                led_duty_set(current_led, 0);
+                current_led = (uint8_t)((current_led + 1) % 4);
                 pulses_remaining = DEVICE_ID_SEQUENCE[current_led];
             }
 
@@ -246,7 +246,7 @@ static void control_timer_init(void)
 
     timer_config.frequency = NRF_TIMER_FREQ_1MHz;
     timer_config.bit_width = NRF_TIMER_BIT_WIDTH_16;
-    timer_config.interrupt_priority = 7U;
+    timer_config.interrupt_priority = 7;
 
     if (nrf_drv_timer_init(&CONTROL_TIMER,
                            &timer_config,
