@@ -3113,5 +3113,72 @@
 //==========================================================
 
 // <<< end of configuration section >>>
+
+/* PWM bring-up additions */
+/* Add these definitions before the final #endif in the PCA10059 MBR sdk_config.h. */
+
+/* app_pwm library. */
+#ifndef APP_PWM_ENABLED
+#define APP_PWM_ENABLED 1
+#endif
+
+/*
+ * This SDK fork's nrf_drv_timer.h maps directly to nrfx_timer.h.
+ * apply_old_config.h does not translate legacy TIMER_ENABLED settings,
+ * therefore configure the NRFX timer driver explicitly here.
+ *
+ * TIMER1: application control tick.
+ * TIMER2/TIMER3: app_pwm instances PWM_A and PWM_B.
+ */
+#ifndef NRFX_TIMER_ENABLED
+#define NRFX_TIMER_ENABLED 1
+#endif
+#ifndef NRFX_TIMER0_ENABLED
+#define NRFX_TIMER0_ENABLED 0
+#endif
+#ifndef NRFX_TIMER1_ENABLED
+#define NRFX_TIMER1_ENABLED 1
+#endif
+#ifndef NRFX_TIMER2_ENABLED
+#define NRFX_TIMER2_ENABLED 1
+#endif
+#ifndef NRFX_TIMER3_ENABLED
+#define NRFX_TIMER3_ENABLED 1
+#endif
+#ifndef NRFX_TIMER4_ENABLED
+#define NRFX_TIMER4_ENABLED 0
+#endif
+
+/* Defaults used by NRF_DRV_TIMER_DEFAULT_CONFIG before runtime overrides. */
+#ifndef NRFX_TIMER_DEFAULT_CONFIG_FREQUENCY
+#define NRFX_TIMER_DEFAULT_CONFIG_FREQUENCY 4 /* 1 MHz */
+#endif
+#ifndef NRFX_TIMER_DEFAULT_CONFIG_MODE
+#define NRFX_TIMER_DEFAULT_CONFIG_MODE 0 /* Timer mode */
+#endif
+#ifndef NRFX_TIMER_DEFAULT_CONFIG_BIT_WIDTH
+#define NRFX_TIMER_DEFAULT_CONFIG_BIT_WIDTH 0 /* 16 bit */
+#endif
+#ifndef NRFX_TIMER_DEFAULT_CONFIG_IRQ_PRIORITY
+#define NRFX_TIMER_DEFAULT_CONFIG_IRQ_PRIORITY 7
+#endif
+#ifndef NRFX_TIMER_CONFIG_LOG_ENABLED
+#define NRFX_TIMER_CONFIG_LOG_ENABLED 0
+#endif
+
+#ifndef PPI_ENABLED
+#define PPI_ENABLED 1
+#endif
+
+#ifndef GPIOTE_ENABLED
+#define GPIOTE_ENABLED 1
+#endif
+#ifndef GPIOTE_CONFIG_NUM_OF_LOW_POWER_EVENTS
+#define GPIOTE_CONFIG_NUM_OF_LOW_POWER_EVENTS 4
+#endif
+#ifndef GPIOTE_CONFIG_IRQ_PRIORITY
+#define GPIOTE_CONFIG_IRQ_PRIORITY 7
+#endif
+
 #endif //SDK_CONFIG_H
 
