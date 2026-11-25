@@ -1,0 +1,6 @@
+Assembling file: gcc_startup_nrf52840.S
+/home/c1pheus/esl-nsdk/modules/nrfx/mdk/gcc_startup_nrf52840.S:1: fatal error: opening dependency file _build/nrf52840_xxaa/gcc_startup_nrf52840.S.d: Permission denied
+    1 | /*
+      | 
+compilation terminated.
+make: *** [/home/c1pheus/esl-nsdk/components/toolchain/gcc/Makefile.common:280: _build/nrf52840_xxaa/gcc_startup_nrf52840.S.o] Error 1
