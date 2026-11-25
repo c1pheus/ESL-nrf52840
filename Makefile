@@ -9,25 +9,6 @@ SDK_ROOT := $(abspath $(SDK_ROOT))
 PROJ_DIR := $(CURDIR)
 
 LINKER_SCRIPT := usb_logs_gcc_nrf52.ld
-ifeq ($(wildcard $(SDK_ROOT)/components/libraries/util/nordic_common.h),)
-$(error SDK_ROOT=$(SDK_ROOT): components/libraries/util/nordic_common.h not found)
-endif
-ifeq ($(wildcard $(SDK_ROOT)/components/libraries/timer/app_timer.h),)
-$(error SDK_ROOT=$(SDK_ROOT): components/libraries/timer/app_timer.h not found)
-endif
-ifeq ($(wildcard $(SDK_ROOT)/modules/nrfx/drivers/include/nrfx_pwm.h),)
-$(error SDK_ROOT=$(SDK_ROOT): modules/nrfx/drivers/include/nrfx_pwm.h not found)
-endif
-ifeq ($(wildcard $(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_gpiote.h),)
-$(error SDK_ROOT=$(SDK_ROOT): integration/nrfx/legacy/nrf_drv_gpiote.h not found)
-endif
-ifeq ($(wildcard $(SDK_ROOT)/integration/nrfx/legacy/nrf_drv_timer.h),)
-$(error SDK_ROOT=$(SDK_ROOT): integration/nrfx/legacy/nrf_drv_timer.h not found)
-endif
-
-ifeq ($(wildcard $(PROJ_DIR)/config/sdk_config.h),)
-$(error config/sdk_config.h is missing. Run ./prepare_config.sh first)
-endif
 
 SRC_FILES += \
   $(SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52840.S \
@@ -44,7 +25,6 @@ SRC_FILES += \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_pwm.c \
   $(SDK_ROOT)/modules/nrfx/mdk/system_nrf52840.c \
   \
-  $(SDK_ROOT)/components/libraries/bsp/bsp.c \
   $(SDK_ROOT)/components/libraries/log/src/nrf_log_frontend.c \
   $(SDK_ROOT)/components/libraries/log/src/nrf_log_str_formatter.c \
   $(SDK_ROOT)/components/libraries/log/src/nrf_log_default_backends.c \
@@ -214,9 +194,8 @@ $(DFU_PACKAGE): $(OUTPUT_DIRECTORY)/nrf52840_xxaa.hex
 	nrfutil pkg generate \
 	   --hw-version 52 \
 	   --application-version 1 \
-	   --sd-req 0x0,0x102 \
-	   --application $< \
-	   --softdevice $(SDK_ROOT)/components/softdevice/s113/hex/s113_nrf52_7.2.0_softdevice.hex $@
+	   --sd-req 0x102 \
+	   --application $< $@
 
 dfu: $(DFU_PACKAGE)
 	@echo "Performing DFU with generated package"
