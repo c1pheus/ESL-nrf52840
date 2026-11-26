@@ -19,11 +19,11 @@
 
 typedef enum
 {
-    BTN_IDLE = 0,           /* released, nothing pending                    */
-    BTN_FIRST_PRESS_DOWN,   /* pressed, first press  */
-    BTN_WAIT_SECOND_PRESS,  /* released after first click!   */
-    BTN_SECOND_PRESS_DOWN,  /* pressed again inside the window              */
-    BTN_HOLDING             /* long press detected, still pressed           */
+    BTN_IDLE = 0,           // released, nothing pending                    
+    BTN_FIRST_PRESS_DOWN,   // pressed, first press  
+    BTN_WAIT_SECOND_PRESS,  // released after first click!  
+    BTN_SECOND_PRESS_DOWN,  //pressed again inside the window           
+    BTN_HOLDING             // long press detected
 } button_state_t;
 
 static const nrf_drv_timer_t CONTROL_TIMER = NRF_DRV_TIMER_INSTANCE(1);
