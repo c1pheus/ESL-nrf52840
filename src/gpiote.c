@@ -11,7 +11,7 @@
 #define BUTTON_SW1_PIN NRF_GPIO_PIN_MAP(1, 6)
 
 #define CONTROL_TICK_MS         10
-#define BUTTON_DEBOUNCE_TICKS   3
+#define BUTTON_DEBOUNCE_MS      30
 #define BUTTON_HOLD_MS          500
 #define BUTTON_HOLD_TICKS       (BUTTON_HOLD_MS / CONTROL_TICK_MS)
 #define DOUBLE_CLICK_TICKS      (300 / CONTROL_TICK_MS)
@@ -19,14 +19,15 @@
 
 typedef enum
 {
-    BTN_IDLE = 0,           // released, nothing pending                    
-    BTN_FIRST_PRESS_DOWN,   // pressed, first press  
-    BTN_WAIT_SECOND_PRESS,  // released after first click!  
-    BTN_SECOND_PRESS_DOWN,  //pressed again inside the window           
+    BTN_IDLE = 0,           // released, nothing pending
+    BTN_FIRST_PRESS_DOWN,   // pressed, first press
+    BTN_WAIT_SECOND_PRESS,  // released after first click!
+    BTN_SECOND_PRESS_DOWN,  //pressed again inside the window
     BTN_HOLDING             // long press detected
 } button_state_t;
 
 static const nrf_drv_timer_t CONTROL_TIMER = NRF_DRV_TIMER_INSTANCE(1);
+static const nrf_drv_timer_t DEBOUNCE_TIMER = NRF_DRV_TIMER_INSTANCE(2);
 
 static volatile uint32_t g_control_ticks = 0;
 static volatile uint32_t g_control_tick_pending = 0;
@@ -34,7 +35,6 @@ static volatile uint32_t g_control_tick_pending = 0;
 /* debounce  */
 static volatile uint32_t g_button_last_edge_tick = 0;
 static volatile bool     g_button_debounce_pending = false;
-static volatile uint8_t  g_button_stable_ticks = 0;
 
 
 static volatile button_state_t g_button_state = BTN_IDLE;
@@ -60,8 +60,17 @@ static inline bool button_is_settled(void)
 static inline bool button_state_is_down(button_state_t state)
 {
     return (state == BTN_FIRST_PRESS_DOWN) ||
-           (state == BTN_SECOND_PRESS_DOWN) ||
-           (state == BTN_HOLDING);
+    (state == BTN_SECOND_PRESS_DOWN) ||
+    (state == BTN_HOLDING);
+}
+
+static void debounce_timer_restart(void)
+{
+    nrf_drv_timer_pause(&DEBOUNCE_TIMER);
+    nrf_drv_timer_clear(&DEBOUNCE_TIMER);
+    nrf_timer_event_clear(DEBOUNCE_TIMER.p_reg, NRF_TIMER_EVENT_COMPARE0);
+
+    nrf_drv_timer_resume(&DEBOUNCE_TIMER);
 }
 
 static void button_event_handler(nrf_drv_gpiote_pin_t pin,
@@ -76,8 +85,9 @@ static void button_event_handler(nrf_drv_gpiote_pin_t pin,
     CRITICAL_REGION_ENTER();
 
     g_button_last_edge_tick   = g_control_ticks;
-    g_button_stable_ticks     = 0;
     g_button_debounce_pending = true;
+
+    debounce_timer_restart();
 
     CRITICAL_REGION_EXIT();
 
@@ -129,18 +139,13 @@ static void button_on_released(void)
 
 
 // wait until the pin has been stable long enough, then report changes.
-static void button_debounce_update(void)
+static void button_debounce_confirm(void)
 {
     bool pressed;
 
     if (!g_button_debounce_pending)
         return;
 
-    if (g_button_stable_ticks < BUTTON_DEBOUNCE_TICKS)
-        ++g_button_stable_ticks;
-
-    if (g_button_stable_ticks < BUTTON_DEBOUNCE_TICKS)
-        return;
     g_button_debounce_pending = false;
 
     pressed = button_pin_is_pressed();
@@ -153,11 +158,28 @@ static void button_debounce_update(void)
         button_on_released();
 }
 
+static void debounce_timer_handler(nrf_timer_event_t event_type,
+                                   void *p_context)
+{
+    (void)p_context;
+
+    if (event_type != NRF_TIMER_EVENT_COMPARE0)
+        return;
+
+    CRITICAL_REGION_ENTER();
+
+    button_debounce_confirm();
+
+    CRITICAL_REGION_EXIT();
+
+    __SEV();
+}
+
 //checking a long press
 static void button_check_hold(void)
 {
     bool pressing = (g_button_state == BTN_FIRST_PRESS_DOWN) ||
-                    (g_button_state == BTN_SECOND_PRESS_DOWN);
+    (g_button_state == BTN_SECOND_PRESS_DOWN);
 
     if (pressing &&
         button_is_settled() &&
@@ -180,7 +202,6 @@ static void button_check_double_click_timeout(void)
 
 static void button_debounce_tick(void)
 {
-    button_debounce_update();
     button_check_hold();
     button_check_double_click_timeout();
 }
@@ -212,9 +233,10 @@ static void control_timer_handler(nrf_timer_event_t event_type,
 uint32_t gpiote_init(void)
 {
     nrf_drv_timer_config_t timer_config = NRF_DRV_TIMER_DEFAULT_CONFIG;
+    nrf_drv_timer_config_t debounce_config = NRF_DRV_TIMER_DEFAULT_CONFIG;
 
     nrf_drv_gpiote_in_config_t button_config =
-        GPIOTE_CONFIG_IN_SENSE_TOGGLE(true);
+    GPIOTE_CONFIG_IN_SENSE_TOGGLE(true);
 
     uint32_t err_code;
     uint32_t ticks;
@@ -237,7 +259,6 @@ uint32_t gpiote_init(void)
     g_first_click_release_tick = 0;
 
     g_button_debounce_pending = false;
-    g_button_stable_ticks = 0;
 
     g_button_state = BTN_IDLE;
     g_double_click_pending = false;
@@ -283,6 +304,36 @@ uint32_t gpiote_init(void)
         NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK,
         true
     );
+
+    debounce_config.frequency = NRF_TIMER_FREQ_31250Hz;
+    debounce_config.bit_width = NRF_TIMER_BIT_WIDTH_16;
+    debounce_config.interrupt_priority = 7;
+
+    err_code = nrf_drv_timer_init(
+        &DEBOUNCE_TIMER,
+        &debounce_config,
+        debounce_timer_handler
+    );
+
+    if (err_code != NRF_SUCCESS)
+        return err_code;
+
+    ticks = nrf_drv_timer_ms_to_ticks(
+        &DEBOUNCE_TIMER,
+        BUTTON_DEBOUNCE_MS
+    );
+
+    nrf_drv_timer_extended_compare(
+        &DEBOUNCE_TIMER,
+        NRF_TIMER_CC_CHANNEL0,
+        ticks,
+        NRF_TIMER_SHORT_COMPARE0_STOP_MASK,
+        true
+    );
+
+    nrf_drv_timer_enable(&DEBOUNCE_TIMER);
+    nrf_drv_timer_pause(&DEBOUNCE_TIMER);
+    nrf_drv_timer_clear(&DEBOUNCE_TIMER);
 
     nrf_drv_gpiote_in_event_enable(BUTTON_SW1_PIN, true);
     nrf_drv_timer_enable(&CONTROL_TIMER);
